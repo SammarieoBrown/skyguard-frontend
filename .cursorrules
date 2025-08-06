@@ -1,0 +1,71 @@
+# SkyGuard Frontend - Professional UI/UX Guidelines
+
+## Design Philosophy
+- **Professional Enterprise UI**: Clean, minimal, and functional design suitable for business applications
+- **No Flashy Elements**: Avoid gradients, excessive animations, or amateur-looking effects
+- **Consistent Typography**: Use clear hierarchy with professional font weights and sizes
+- **Subtle Color Palette**: Primarily grays, whites, and minimal accent colors
+- **Clean Spacing**: Consistent margins, padding, and layout grids
+
+## Color System
+- **Primary**: Use subtle blues (#475569, #64748b) for accents only
+- **Background**: White (#ffffff) and light grays (#f8fafc, #f1f5f9)
+- **Text**: Dark grays (#0f172a, #334155, #64748b) for hierarchy
+- **Borders**: Light grays (#e2e8f0, #cbd5e1)
+- **Success**: Subtle green (#059669)
+- **Warning**: Subtle amber (#d97706)
+- **Error**: Subtle red (#dc2626)
+
+## Typography
+- **Headings**: Inter font, weights 600-700, clean hierarchy
+- **Body**: Inter font, weight 400-500, 14-16px base size
+- **Labels**: Inter font, weight 500, 12-14px
+- **No decorative fonts or excessive text effects**
+
+## Layout Principles
+- **Sidebar Navigation**: Use vertical sidebar instead of horizontal tabs
+- **Grid System**: 8px base unit for spacing consistency
+- **Cards**: Clean white backgrounds with subtle shadows
+- **Responsive**: Mobile-first approach with clean breakpoints
+
+## Component Standards
+- **Buttons**: Clean, minimal with subtle hover states
+- **Cards**: White background, subtle border or shadow
+- **Tables**: Clean rows with proper spacing and typography
+- **Forms**: Clear labels, proper spacing, minimal styling
+- **Navigation**: Clean sidebar with professional icons
+
+## What NOT to Use
+- ❌ Gradient backgrounds (cosmic, aurora, rainbow effects)
+- ❌ Excessive animations or transitions
+- ❌ Bright, flashy colors
+- ❌ Oversized typography or decorative fonts
+- ❌ Complex visual effects or glassmorphism
+- ❌ Amateur-looking design patterns
+- ❌ Horizontal tab navigation for main app sections
+
+## Professional Patterns
+- ✅ Clean sidebar navigation with icons
+- ✅ Subtle hover states and interactions
+- ✅ Consistent spacing and typography
+- ✅ Professional color scheme
+- ✅ Clear visual hierarchy
+- ✅ Minimal, functional design
+- ✅ Enterprise-grade appearance
+
+## Code Standards
+- Use Tailwind utility classes for consistency
+- Keep components clean and focused
+- Avoid inline styles
+- Use semantic HTML structure
+- Ensure accessibility standards
+- Maintain responsive design patterns
+
+## Dashboard Specific
+- **Layout**: Sidebar + main content area
+- **Navigation**: Vertical menu with clear sections
+- **Content**: Clean cards with subtle shadows
+- **Charts**: Professional styling with muted colors
+- **Status**: Clean indicators without flashy effects
+
+Remember: This is professional weather intelligence software for enterprise clients, not a flashy consumer app. Keep it clean, functional, and trustworthy.

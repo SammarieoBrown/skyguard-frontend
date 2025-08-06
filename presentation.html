@@ -1,0 +1,736 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SkyGuard Analytics - Capstone Project Presentation</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Exo+2:wght@300;400;500;600;700&display=swap');
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Exo 2', sans-serif;
+            background: #ffffff;
+            background-attachment: fixed;
+            color: #1e293b;
+            overflow: hidden;
+            position: relative;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: 
+                radial-gradient(circle at 20% 80%, rgba(59, 130, 246, 0.03) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(99, 102, 241, 0.03) 0%, transparent 50%),
+                radial-gradient(circle at 40% 40%, rgba(34, 197, 94, 0.02) 0%, transparent 50%);
+            pointer-events: none;
+            z-index: -1;
+        }
+
+        .presentation-container {
+            width: 100vw;
+            height: 100vh;
+            position: relative;
+        }
+
+        .slide {
+            width: 100%;
+            height: 100%;
+            padding: 60px;
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            background: #ffffff;
+            backdrop-filter: blur(20px);
+            position: relative;
+            overflow-y: auto;
+            border: 1px solid #e5e7eb;
+        }
+
+        .slide.active {
+            display: flex;
+        }
+
+        .slide h1 {
+            font-family: 'Orbitron', monospace;
+            font-size: 4em;
+            font-weight: 900;
+            margin-bottom: 30px;
+            color: #1e40af;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .slide h2 {
+            font-family: 'Orbitron', monospace;
+            font-size: 2.8em;
+            font-weight: 700;
+            margin-bottom: 40px;
+            color: #2563eb;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .slide h3 {
+            font-size: 1.8em;
+            font-weight: 600;
+            margin-bottom: 20px;
+            color: #059669;
+        }
+
+        .slide p, .slide li {
+            font-size: 1.3em;
+            line-height: 1.6;
+            margin-bottom: 20px;
+            color: #4b5563;
+            max-width: 900px;
+        }
+
+        .slide ul {
+            text-align: left;
+            max-width: 800px;
+        }
+
+        .slide li {
+            margin-bottom: 15px;
+            padding-left: 25px;
+            position: relative;
+        }
+
+        .slide li::before {
+            content: "▶";
+            position: absolute;
+            left: 0;
+            color: #2563eb;
+            font-weight: bold;
+        }
+
+        .subtitle {
+            font-size: 1.6em;
+            color: #6b7280;
+            margin-bottom: 40px;
+            font-weight: 300;
+        }
+
+        .author-info {
+            position: absolute;
+            bottom: 40px;
+            right: 40px;
+            text-align: right;
+            font-size: 1.1em;
+            color: #374151;
+            background: #f3f4f6;
+            padding: 15px;
+            border-radius: 10px;
+            border: 1px solid #e5e7eb;
+        }
+
+        .navigation {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 15px;
+            z-index: 1000;
+        }
+
+        .nav-btn {
+            padding: 12px 24px;
+            background: #3b82f6;
+            border: 2px solid #2563eb;
+            border-radius: 25px;
+            color: #ffffff;
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: 600;
+            font-family: 'Exo 2', sans-serif;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+
+        .nav-btn:hover {
+            background: #2563eb;
+            border-color: #1d4ed8;
+            transform: translateY(-3px);
+        }
+
+        .slide-number {
+            position: absolute;
+            top: 30px;
+            right: 30px;
+            background: #f3f4f6;
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-size: 1em;
+            font-weight: 600;
+            border: 1px solid #e5e7eb;
+            color: #374151;
+        }
+
+        .two-column {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 60px;
+            width: 100%;
+            max-width: 1200px;
+            align-items: start;
+        }
+
+        .column {
+            text-align: left;
+        }
+
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 25px;
+            width: 100%;
+            max-width: 1100px;
+            margin-top: 30px;
+        }
+
+        .feature-card {
+            background: #ffffff;
+            padding: 25px;
+            border-radius: 12px;
+            backdrop-filter: blur(15px);
+            border: 1px solid #e5e7eb;
+            transition: all 0.4s cubic-bezier(0.23, 1, 0.32, 1);
+            box-shadow: 
+                0 4px 6px -1px rgba(0, 0, 0, 0.1),
+                0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            position: relative;
+            overflow: hidden;
+            text-align: left;
+        }
+
+        .feature-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(59, 130, 246, 0.1), transparent);
+            transition: left 0.6s ease;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-8px) scale(1.02);
+            box-shadow: 
+                0 10px 15px -3px rgba(0, 0, 0, 0.1),
+                0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            border-color: #3b82f6;
+        }
+
+        .feature-card:hover::before {
+            left: 100%;
+        }
+
+        .feature-card h4 {
+            font-size: 1.4em;
+            margin-bottom: 15px;
+            color: #1e40af;
+            font-weight: 700;
+        }
+
+        .feature-card p {
+            font-size: 1.1em;
+            line-height: 1.5;
+            margin-bottom: 12px;
+            color: #4b5563;
+            text-align: left;
+        }
+
+        .feature-card ul {
+            text-align: left;
+            margin-top: 10px;
+        }
+
+        .feature-card li {
+            font-size: 1em;
+            margin-bottom: 8px;
+            color: #6b7280;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 10px;
+            background: #e5e7eb;
+            border-radius: 5px;
+            overflow: hidden;
+            margin-top: 10px;
+            border: 1px solid #d1d5db;
+            box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.05);
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #3b82f6, #2563eb, #1d4ed8);
+            border-radius: 5px;
+            transition: width 0.8s ease;
+            position: relative;
+        }
+
+        .progress-fill::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+        }
+
+        .status-complete { width: 100%; }
+        .status-progress { width: 75%; }
+        .status-planned { width: 25%; }
+
+        .highlight {
+            color: #1e40af;
+            font-weight: 700;
+        }
+
+        .architecture-diagram {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+            max-width: 1000px;
+            margin: 30px 0;
+        }
+
+        .arch-box {
+            background: #f3f4f6;
+            padding: 25px;
+            border-radius: 15px;
+            border: 2px solid #e5e7eb;
+            min-width: 180px;
+            text-align: center;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+        }
+
+        .arch-box:hover {
+            transform: scale(1.05);
+            border-color: #3b82f6;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        }
+
+        .arch-arrow {
+            font-size: 2.5em;
+            color: #2563eb;
+            margin: 0 20px;
+        }
+
+        .demo-link {
+            display: inline-block;
+            margin-top: 30px;
+            padding: 18px 35px;
+            background: #3b82f6;
+            border: 2px solid #2563eb;
+            border-radius: 30px;
+            text-decoration: none;
+            color: #ffffff;
+            font-weight: 700;
+            font-size: 1.3em;
+            font-family: 'Orbitron', monospace;
+            transition: all 0.4s ease;
+            box-shadow: 
+                0 4px 6px -1px rgba(0, 0, 0, 0.1),
+                0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .demo-link:hover {
+            transform: translateY(-3px) scale(1.05);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+            background: #2563eb;
+            border-color: #1d4ed8;
+        }
+
+        .logo {
+            position: absolute;
+            top: 30px;
+            left: 30px;
+            font-size: 1.8em;
+            font-weight: 900;
+            font-family: 'Orbitron', monospace;
+            color: #1e40af;
+        }
+
+        @media (max-width: 768px) {
+            .slide {
+                padding: 40px 20px;
+            }
+            
+            .slide h1 {
+                font-size: 2.5em;
+            }
+            
+            .slide h2 {
+                font-size: 2em;
+            }
+            
+            .two-column {
+                grid-template-columns: 1fr;
+                gap: 30px;
+            }
+            
+            .feature-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .architecture-diagram {
+                flex-direction: column;
+                gap: 20px;
+            }
+            
+            .arch-arrow {
+                transform: rotate(90deg);
+            }
+        }
+
+        /* Futuristic scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #f3f4f6;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 10px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+    </style>
+</head>
+<body>
+    <div class="presentation-container">
+        <!-- Slide 1: Title -->
+        <div class="slide active">
+            <div class="logo">SkyGuard</div>
+            <div class="slide-number">1 / 7</div>
+            <h1>SkyGuard Analytics</h1>
+            <p class="subtitle">Integrated Severe Weather Prediction and Analysis Platform</p>
+            <h3>AI-Powered Weather Intelligence for Emergency Management</h3>
+            <div class="author-info">
+                <strong>Sammarieo Brown</strong><br>
+                MSc Applied Data Science<br>
+                University of the West Indies, Mona<br>
+                COMP6830 – Capstone Project II
+            </div>
+        </div>
+
+        <!-- Slide 2: Project Overview -->
+        <div class="slide">
+            <div class="logo">SkyGuard</div>
+            <div class="slide-number">2 / 7</div>
+            <h2>Project Overview</h2>
+            <div class="two-column">
+                <div class="column">
+                    <h3>The Challenge</h3>
+                    <ul>
+                        <li>Severe weather events cause <span class="highlight">billions in damage</span> annually</li>
+                        <li>Traditional prediction models are <span class="highlight">computationally intensive</span></li>
+                        <li>Gap between <span class="highlight">real-time monitoring</span> and <span class="highlight">historical analysis</span></li>
+                        <li>Emergency managers need <span class="highlight">faster, data-driven</span> decision support</li>
+                    </ul>
+                </div>
+                <div class="column">
+                    <h3>Our Solution</h3>
+                    <ul>
+                        <li><span class="highlight">AI-powered platform</span> combining radar nowcasting and historical analytics</li>
+                        <li><span class="highlight">Real-time predictions</span> using deep learning on NEXRAD data</li>
+                        <li><span class="highlight">Risk assessment</span> using 75 years of storm records</li>
+                        <li><span class="highlight">Interactive dashboard</span> for emergency responders</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 3: Data Sources -->
+        <div class="slide">
+            <div class="logo">SkyGuard</div>
+            <div class="slide-number">3 / 8</div>
+            <h2>Dual Data Approach</h2>
+            <div class="feature-grid">
+                <div class="feature-card">
+                    <h4>🌩️ Unstructured Data</h4>
+                    <p><strong>NEXRAD Level II Radar</strong></p>
+                    <ul>
+                        <li>Real-time weather radar scans</li>
+                        <li>85GB+ per station annually</li>
+                        <li>Multi-field measurements (reflectivity, velocity, spectrum width)</li>
+                        <li>Deep learning for nowcasting</li>
+                    </ul>
+                </div>
+                <div class="feature-card">
+                    <h4>📊 Structured Data</h4>
+                    <p><strong>NOAA Historic Storm Records</strong></p>
+                    <ul>
+                        <li>2.37M+ severe weather events</li>
+                        <li>75 years of historical data (1950-2024)</li>
+                        <li>Damage, casualty, and impact metrics</li>
+                        <li>Machine learning for risk prediction</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 4: Structured Data Models -->
+        <div class="slide">
+            <div class="logo">SkyGuard</div>
+            <div class="slide-number">4 / 8</div>
+            <h2>Structured Data Analytics</h2>
+            <p class="subtitle">NOAA Historic Storm Records (2.37M+ events, 1950-2024)</p>
+            <div class="feature-grid">
+                <div class="feature-card">
+                    <h4>💰 Property Damage Prediction</h4>
+                    <p><span class="highlight">Data:</span> Event type, magnitude, duration, location, population density</p>
+                    <p><span class="highlight">Technique:</span> Histogram Gradient Boosting Regressor</p>
+                    <p><span class="highlight">Output:</span> Economic impact estimation (USD)</p>
+                </div>
+                <div class="feature-card">
+                    <h4>🚨 Casualty Risk Assessment</h4>
+                    <p><span class="highlight">Data:</span> Historical casualties, event characteristics, demographics</p>
+                    <p><span class="highlight">Technique:</span> Random Forest Classifier</p>
+                    <p><span class="highlight">Output:</span> Injury/fatality probability scores</p>
+                </div>
+                <div class="feature-card">
+                    <h4>⚖️ Severity Classification</h4>
+                    <p><span class="highlight">Data:</span> Multi-dimensional impact metrics, damage scales</p>
+                    <p><span class="highlight">Technique:</span> CatBoost Gradient Boosting</p>
+                    <p><span class="highlight">Output:</span> 5-level severity (Minor→Catastrophic)</p>
+                </div>
+                <div class="feature-card">
+                    <h4>🗺️ Regional Risk Scoring</h4>
+                    <p><span class="highlight">Data:</span> State-level historical patterns, event frequencies</p>
+                    <p><span class="highlight">Technique:</span> Statistical aggregation & weighted scoring</p>
+                    <p><span class="highlight">Output:</span> Comparative state risk rankings</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 5: Technical Architecture -->
+        <div class="slide">
+            <div class="logo">SkyGuard</div>
+            <div class="slide-number">5 / 8</div>
+            <h2>System Architecture</h2>
+            <div class="architecture-diagram">
+                <div class="arch-box">
+                    <h4>Data Processing</h4>
+                    <p>NEXRAD Radar + NOAA Records</p>
+                </div>
+                <div class="arch-arrow">→</div>
+                <div class="arch-box">
+                    <h4>ML Models</h4>
+                    <p>ConvLSTM + XGBoost + Random Forest</p>
+                </div>
+                <div class="arch-arrow">→</div>
+                <div class="arch-box">
+                    <h4>FastAPI Backend</h4>
+                    <p>REST APIs + Model Serving</p>
+                </div>
+                <div class="arch-arrow">→</div>
+                <div class="arch-box">
+                    <h4>Next.js Frontend</h4>
+                    <p>Interactive Dashboard</p>
+                </div>
+            </div>
+            <div class="feature-grid" style="margin-top: 40px;">
+                <div class="feature-card">
+                    <h4>⚡ Real-time Module</h4>
+                    <p>ConvLSTM deep learning for radar nowcasting and storm evolution prediction</p>
+                </div>
+                <div class="feature-card">
+                    <h4>🎯 Risk Assessment</h4>
+                    <p>ML models for property damage, casualty risk, and severity classification</p>
+                </div>
+                <div class="feature-card">
+                    <h4>🔮 Scenario Simulation</h4>
+                    <p>What-if analysis and sensitivity testing for emergency planning</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 6: Work Completed -->
+        <div class="slide">
+            <div class="logo">SkyGuard</div>
+            <div class="slide-number">6 / 8</div>
+            <h2>Progress Update</h2>
+            <div class="two-column">
+                <div class="column">
+                    <h3>✅ Completed</h3>
+                    <div style="margin-bottom: 20px;">
+                        <strong>Research & Data Science (/Capstone)</strong>
+                        <div class="progress-bar"><div class="progress-fill status-complete"></div></div>
+                        <ul>
+                            <li>Data exploration and preprocessing</li>
+                            <li>Feature engineering pipeline</li>
+                            <li>ML model training and validation</li>
+                            <li>Model performance optimization</li>
+                        </ul>
+                    </div>
+                    <div style="margin-bottom: 20px;">
+                        <strong>Backend API (/SkyGuard Analytics)</strong>
+                        <div class="progress-bar"><div class="progress-fill status-complete"></div></div>
+                        <ul>
+                            <li>FastAPI application structure</li>
+                            <li>REST endpoints for all models</li>
+                            <li>Model serving infrastructure</li>
+                            <li>Database integration</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="column">
+                    <h3>🚧 In Progress</h3>
+                    <div style="margin-bottom: 20px;">
+                        <strong>Frontend Dashboard (/skyguard-frontend)</strong>
+                        <div class="progress-bar"><div class="progress-fill status-progress"></div></div>
+                        <ul>
+                            <li>✅ UI components and layout</li>
+                            <li>✅ Impact analysis interface</li>
+                            <li>🔄 Risk assessment dashboard</li>
+                            <li>🔄 Scenario simulation tools</li>
+                        </ul>
+                    </div>
+                    <div style="margin-bottom: 20px;">
+                        <strong>Real-time Radar Module</strong>
+                        <div class="progress-bar"><div class="progress-fill status-planned"></div></div>
+                        <ul>
+                            <li>🔄 NEXRAD data integration</li>
+                            <li>📋 ConvLSTM model deployment</li>
+                            <li>📋 Real-time visualization</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 7: Current Demo -->
+        <div class="slide">
+            <div class="logo">SkyGuard</div>
+            <div class="slide-number">7 / 8</div>
+            <h2>Live Demo - Current Capabilities</h2>
+            <div class="feature-grid">
+                <div class="feature-card">
+                    <h4>💰 Property Damage Prediction</h4>
+                    <p>ML model predicts economic impact based on event type, magnitude, duration, and location</p>
+                </div>
+                <div class="feature-card">
+                    <h4>🚨 Casualty Risk Assessment</h4>
+                    <p>Probability scoring for potential injuries and fatalities using historical patterns</p>
+                </div>
+                <div class="feature-card">
+                    <h4>⚖️ Severity Classification</h4>
+                    <p>5-level severity rating: Minor → Moderate → Significant → Severe → Catastrophic</p>
+                </div>
+                <div class="feature-card">
+                    <h4>🗺️ State Risk Analysis</h4>
+                    <p>Regional risk scoring and comparative analysis across US states</p>
+                </div>
+                <div class="feature-card">
+                    <h4>🔬 Scenario Simulation</h4>
+                    <p>What-if analysis with parameter modification and sensitivity testing</p>
+                </div>
+                <div class="feature-card">
+                    <h4>📈 Comprehensive Analytics</h4>
+                    <p>Integrated dashboard combining all prediction models with interactive visualizations</p>
+                </div>
+            </div>
+            <a href="http://localhost:3000/dashboard" class="demo-link" target="_blank">
+                🚀 Launch Interactive Dashboard
+            </a>
+        </div>
+
+        <!-- Slide 8: Next Steps -->
+        <div class="slide">
+            <div class="logo">SkyGuard</div>
+            <div class="slide-number">8 / 8</div>
+            <h2>Next Steps & Timeline</h2>
+            <div class="two-column">
+                <div class="column">
+                    <h3>🎯 Immediate Priorities (Next 2 weeks)</h3>
+                    <ul>
+                        <li><span class="highlight">Complete frontend integration</span> - finish connecting all API endpoints</li>
+                        <li><span class="highlight">Real-time radar module</span> - integrate NEXRAD data processing</li>
+                        <li><span class="highlight">ConvLSTM deployment</span> - implement deep learning nowcasting</li>
+                        <li><span class="highlight">Performance optimization</span> - API response times and caching</li>
+                    </ul>
+                </div>
+                <div class="column">
+                    <h3>🚀 Final Sprint (Remaining time)</h3>
+                    <ul>
+                        <li><span class="highlight">Testing & validation</span> - comprehensive system testing</li>
+                        <li><span class="highlight">Documentation</span> - technical docs and user guides</li>
+                        <li><span class="highlight">Deployment</span> - cloud hosting and production setup</li>
+                        <li><span class="highlight">Final presentation</span> - polished demo and documentation</li>
+                    </ul>
+                </div>
+            </div>
+            <div style="margin-top: 40px; text-align: center;">
+                <h3>Key Challenges to Address</h3>
+                <p>Real-time data streaming, model inference optimization, user experience refinement</p>
+            </div>
+        </div>
+
+
+    </div>
+
+    <div class="navigation">
+        <button class="nav-btn" onclick="previousSlide()">← Previous</button>
+        <button class="nav-btn" onclick="nextSlide()">Next →</button>
+    </div>
+
+    <script>
+        let currentSlide = 0;
+        const slides = document.querySelectorAll('.slide');
+        const totalSlides = slides.length;
+
+        function showSlide(n) {
+            slides[currentSlide].classList.remove('active');
+            currentSlide = (n + totalSlides) % totalSlides;
+            slides[currentSlide].classList.add('active');
+        }
+
+        function nextSlide() {
+            showSlide(currentSlide + 1);
+        }
+
+        function previousSlide() {
+            showSlide(currentSlide - 1);
+        }
+
+        // Keyboard navigation
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'ArrowRight' || e.key === ' ') {
+                nextSlide();
+            } else if (e.key === 'ArrowLeft') {
+                previousSlide();
+            }
+        });
+
+        // Auto-advance slides (optional - remove if not wanted)
+        // setInterval(nextSlide, 30000); // Auto-advance every 30 seconds
+    </script>
+</body>
+</html> 
