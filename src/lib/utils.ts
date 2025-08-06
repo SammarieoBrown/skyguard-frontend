@@ -15,6 +15,8 @@ export function formatNumber(num: number): string {
   return num.toString()
 }
 
+// this is a empty commit
+
 
 
 export function formatCurrency(amount: number, currency: string = "USD"): string {
