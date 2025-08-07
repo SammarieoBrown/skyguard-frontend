@@ -10,12 +10,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 
-interface CTASectionProps {
-  email: string;
-  setEmail: (email: string) => void;
-}
-
-const CTASection: React.FC<CTASectionProps> = ({ email, setEmail }) => {
+const CTASection: React.FC = () => {
   return (
     <section className="py-24 px-4 bg-slate-50">
       <div className="max-w-4xl mx-auto text-center">

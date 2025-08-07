@@ -17,7 +17,6 @@ import {
   Activity,
   CheckCircle
 } from 'lucide-react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { 
   predictPropertyDamage, 
   predictCasualtyRisk, 
@@ -32,10 +31,123 @@ import {
   ComprehensiveAssessmentRequest
 } from '@/lib/api';
 
+interface Factor {
+  factor: string;
+  correlation: number;
+  importance: number;
+  value?: number | string;
+}
+
+interface PopulationRiskFactor {
+  [key: string]: string | number;
+}
+
+interface ImpactResults {
+  predicted_damage?: number;
+  confidence?: number;
+  damage_category?: string;
+  influential_factors?: Factor[];
+  risk_score?: number;
+  risk_level?: string;
+  confidence_interval?: { lower: number; upper: number };
+  population_risk_factors?: PopulationRiskFactor;
+  severity_score?: number;
+  severity?: {
+    impact_factors?: Record<string, string | number>;
+    severity_class?: string;
+    description?: string;
+    confidence_score?: number;
+  };
+  severity_assessment?: {
+    impact_factors?: Record<string, string | number>;
+    severity_class?: string;
+    description?: string;
+    confidence_score?: number;
+  };
+  severity_category?: string;
+  confidence_score?: number;
+  prediction_factors?: Factor[];
+  impact_factors?: Record<string, string | number>;
+  error?: string;
+  prediction_range?: {
+    low_estimate: number;
+    high_estimate: number;
+  };
+  casualty_risk_score?: number;
+  risk_category?: string;
+  probability?: {
+    no_casualties: number;
+    minor_injuries?: number;
+    major_injuries?: number;
+    fatalities?: number;
+  };
+  severity_class?: string;
+  description?: string;
+  event_params?: Record<string, string | number>;
+  property_damage_assessment?: {
+    predicted_damage?: number;
+    property_damage?: number;
+    prediction_range?: {
+      low_estimate: number;
+      high_estimate: number;
+    };
+    confidence_score?: number;
+    damage_category?: string;
+    influential_factors?: Factor[];
+  };
+  property_damage?: {
+    predicted_damage?: number;
+    property_damage?: number;
+    prediction_range?: {
+      low_estimate: number;
+      high_estimate: number;
+    };
+    confidence_score?: number;
+    damage_category?: string;
+    influential_factors?: Factor[];
+  };
+  casualty_risk_assessment?: {
+    risk_score?: number;
+    risk_level?: string;
+    confidence_interval?: { lower: number; upper: number };
+    population_risk_factors?: PopulationRiskFactor;
+    risk_category?: string;
+    casualty_risk_score?: number;
+    casualty_risk?: number;
+    probability?: {
+      no_casualties: number;
+      minor_injuries?: number;
+      major_injuries?: number;
+      fatalities?: number;
+    };
+  };
+  casualty_risk?: {
+    risk_score?: number;
+    risk_level?: string;
+    confidence_interval?: { lower: number; upper: number };
+    population_risk_factors?: PopulationRiskFactor;
+    risk_category?: string;
+    casualty_risk_score?: number;
+    casualty_risk?: number;
+    probability?: {
+      no_casualties: number;
+      minor_injuries?: number;
+      major_injuries?: number;
+      fatalities?: number;
+    };
+  };
+  severity_assessment_details?: {
+    severity_score?: number;
+    severity_category?: string;
+    confidence_score?: number;
+    prediction_factors?: Factor[];
+  };
+}
+
 export default function ImpactAnalysis() {
   const [activeTab, setActiveTab] = useState('property');
   const [loading, setLoading] = useState(false);
-  const [results, setResults] = useState<any>(null);
+  const [results, setResults] = useState<ImpactResults | null>(null);
 
   // Form states with proper defaults
   const [propertyForm, setPropertyForm] = useState<PropertyDamageRequest>({
@@ -165,7 +277,7 @@ export default function ImpactAnalysis() {
     }
     
     // Helper function to render risk factors
-    const renderInfluentialFactors = (factors: any[]) => {
+    const renderInfluentialFactors = (factors: Factor[]) => {
       if (!factors || factors.length === 0) return null;
       
       return (
@@ -175,7 +287,7 @@ export default function ImpactAnalysis() {
             Key Risk Factors
           </h4>
           <div className="space-y-2">
-            {factors.map((factor: any, index: number) => (
+            {factors.map((factor: Factor, index: number) => (
               <div key={index} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
                 <div className="flex items-center gap-3">
                   <div className="text-sm font-medium capitalize">
@@ -203,7 +315,7 @@ export default function ImpactAnalysis() {
     };
     
     // Helper function to render population risk factors
-    const renderPopulationRiskFactors = (factors: any) => {
+    const renderPopulationRiskFactors = (factors: PopulationRiskFactor) => {
       if (!factors) return null;
       
       return (
@@ -219,11 +331,11 @@ export default function ImpactAnalysis() {
                 <div className="flex-1 bg-slate-200 rounded-full h-2">
                   <div 
                     className="h-2 bg-gradient-to-r from-green-500 to-red-500 rounded-full" 
-                    style={{ width: `${factors.population_density * 100}%` }}
+                    style={{ width: `${Number(factors.population_density) * 100}%` }}
                   />
                 </div>
                 <span className="text-sm font-medium">
-                  {(factors.population_density * 100).toFixed(0)}%
+                  {(Number(factors.population_density) * 100).toFixed(0)}%
                 </span>
               </div>
             </div>
@@ -233,11 +345,11 @@ export default function ImpactAnalysis() {
                 <div className="flex-1 bg-slate-200 rounded-full h-2">
                   <div 
                     className="h-2 bg-gradient-to-r from-green-500 to-red-500 rounded-full" 
-                    style={{ width: `${factors.vulnerable_population * 100}%` }}
+                    style={{ width: `${Number(factors.vulnerable_population) * 100}%` }}
                   />
                 </div>
                 <span className="text-sm font-medium">
-                  {(factors.vulnerable_population * 100).toFixed(0)}%
+                  {(Number(factors.vulnerable_population) * 100).toFixed(0)}%
                 </span>
               </div>
             </div>
@@ -247,11 +359,11 @@ export default function ImpactAnalysis() {
                 <div className="flex-1 bg-slate-200 rounded-full h-2">
                   <div 
                     className="h-2 bg-gradient-to-r from-red-500 to-green-500 rounded-full" 
-                    style={{ width: `${factors.infrastructure_resilience * 100}%` }}
+                    style={{ width: `${Number(factors.infrastructure_resilience) * 100}%` }}
                   />
                 </div>
                 <span className="text-sm font-medium">
-                  {(factors.infrastructure_resilience * 100).toFixed(0)}%
+                  {(Number(factors.infrastructure_resilience) * 100).toFixed(0)}%
                 </span>
               </div>
             </div>
@@ -400,10 +512,10 @@ export default function ImpactAnalysis() {
                         <span className="font-medium">
                           {formatCurrency(
                             results.property_damage_assessment?.prediction_range?.low_estimate ||
-                            results.property_damage?.prediction_range?.low_estimate
+                            results.property_damage?.prediction_range?.low_estimate || 0
                           )} - {formatCurrency(
                             results.property_damage_assessment?.prediction_range?.high_estimate ||
-                            results.property_damage?.prediction_range?.high_estimate
+                            results.property_damage?.prediction_range?.high_estimate || 0
                           )}
                         </span>
                       </div>
@@ -414,7 +526,7 @@ export default function ImpactAnalysis() {
                       <div className="flex justify-between">
                         <span>Model confidence:</span>
                         <span className="font-medium">
-                          {((results.property_damage_assessment?.confidence_score || results.property_damage?.confidence_score) * 100).toFixed(0)}%
+                          {((results.property_damage_assessment?.confidence_score || results.property_damage?.confidence_score || 0) * 100).toFixed(0)}%
                         </span>
                       </div>
                     </div>
@@ -422,7 +534,7 @@ export default function ImpactAnalysis() {
                 </div>
               )}
               
-              {(results.casualty_assessment || results.casualty_risk) && (
+              {(results.casualty_risk_assessment || results.casualty_risk) && (
                 <div className="space-y-3">
                   <div className="flex items-center justify-between p-4 bg-red-50 rounded-lg">
                     <div className="flex items-center gap-3">
@@ -430,7 +542,7 @@ export default function ImpactAnalysis() {
                       <div>
                         <div className="font-medium">Casualty Assessment</div>
                         <div className="text-sm text-slate-600">
-                          {results.casualty_assessment?.risk_category || 
+                          {results.casualty_risk_assessment?.risk_category || 
                          results.casualty_risk?.risk_category || 
                          'Risk probability'}
                         </div>
@@ -438,8 +550,8 @@ export default function ImpactAnalysis() {
                     </div>
                     <div className="text-2xl font-bold text-red-600">
                       {((
-                        results.casualty_assessment?.casualty_risk_score ||
-                        results.casualty_assessment?.casualty_risk ||
+                        results.casualty_risk_assessment?.casualty_risk_score ||
+                        results.casualty_risk_assessment?.casualty_risk ||
                         results.casualty_risk?.casualty_risk_score ||
                         results.casualty_risk?.casualty_risk ||
                         0
@@ -447,14 +559,14 @@ export default function ImpactAnalysis() {
                     </div>
                   </div>
                   
-                  {(results.casualty_assessment?.probability || results.casualty_risk?.probability) && (
+                  {(results.casualty_risk_assessment?.probability || results.casualty_risk?.probability) && (
                     <div className="px-4 pb-2 text-sm text-slate-600">
                       <div className="flex justify-between">
                         <span>No casualties probability:</span>
                         <span className="font-medium text-green-600">
                           {((
-                            results.casualty_assessment?.probability?.no_casualties ||
-                            results.casualty_risk?.probability?.no_casualties
+                            results.casualty_risk_assessment?.probability?.no_casualties ||
+                            results.casualty_risk?.probability?.no_casualties || 0
                           ) * 100).toFixed(1)}%
                         </span>
                       </div>
@@ -489,7 +601,7 @@ export default function ImpactAnalysis() {
                         <p className="text-xs text-slate-500 mt-1">
                           Confidence: {((
                             results.severity_assessment?.confidence_score || 
-                            results.severity?.confidence_score
+                            results.severity?.confidence_score || 0
                           ) * 100).toFixed(1)}%
                         </p>
                       )}
@@ -502,13 +614,13 @@ export default function ImpactAnalysis() {
               {(results.property_damage_assessment?.influential_factors || results.property_damage?.influential_factors) && 
                 renderInfluentialFactors(
                   results.property_damage_assessment?.influential_factors || 
-                  results.property_damage?.influential_factors
+                  results.property_damage?.influential_factors || []
                 )}
               
-              {(results.casualty_assessment?.population_risk_factors || results.casualty_risk?.population_risk_factors) && 
+              {(results.casualty_risk_assessment?.population_risk_factors || results.casualty_risk?.population_risk_factors) && 
                 renderPopulationRiskFactors(
-                  results.casualty_assessment?.population_risk_factors || 
-                  results.casualty_risk?.population_risk_factors
+                  results.casualty_risk_assessment?.population_risk_factors || 
+                  results.casualty_risk?.population_risk_factors || {}
                 )}
               
               {/* Impact factors from severity assessment */}
@@ -520,20 +632,12 @@ export default function ImpactAnalysis() {
                     Impact Factors
                   </h4>
                   <div className="space-y-2">
-                    {Object.entries(results.severity?.impact_factors || results.severity_assessment?.impact_factors || {}).map(([key, value]: [string, any]) => (
+                    {Object.entries(results.severity?.impact_factors || results.severity_assessment?.impact_factors || {}).map(([key, value]: [string, string | number]) => (
                       <div key={key} className="p-3 bg-slate-50 rounded-lg">
                         <div className="text-sm font-medium capitalize mb-1">
                           {key.replace('_', ' ')}
                         </div>
-                        {typeof value === 'object' ? (
-                          <div className="text-sm text-slate-600">
-                            {value.value !== undefined && <div>Value: {value.value}</div>}
-                            {value.impact_level && <div>Impact Level: {value.impact_level}</div>}
-                            {value.total !== undefined && <div>Total: {value.total}</div>}
-                          </div>
-                        ) : (
-                          <div className="text-sm text-slate-600">{value}</div>
-                        )}
+                        <div className="text-sm text-slate-600">{String(value)}</div>
                       </div>
                     ))}
                   </div>
@@ -581,20 +685,12 @@ export default function ImpactAnalysis() {
                         Impact Factors
                       </h4>
                       <div className="space-y-2">
-                        {Object.entries(results.impact_factors).map(([key, value]: [string, any]) => (
+                        {Object.entries(results.impact_factors).map(([key, value]: [string, string | number]) => (
                           <div key={key} className="p-3 bg-slate-50 rounded-lg">
                             <div className="text-sm font-medium capitalize mb-1">
                               {key.replace('_', ' ')}
                             </div>
-                            {typeof value === 'object' ? (
-                              <div className="text-sm text-slate-600">
-                                {value.value !== undefined && <div>Value: {value.value}</div>}
-                                {value.impact_level && <div>Impact Level: {value.impact_level}</div>}
-                                {value.total !== undefined && <div>Total: {value.total}</div>}
-                              </div>
-                            ) : (
-                              <div className="text-sm text-slate-600">{value}</div>
-                            )}
+                            <div className="text-sm text-slate-600">{String(value)}</div>
                           </div>
                         ))}
                       </div>

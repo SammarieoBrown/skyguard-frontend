@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -9,29 +9,30 @@ import {
   BarChart3, 
   Shield, 
   Zap, 
-  TrendingUp, 
-  MapPin,
-  AlertTriangle,
+  TrendingUp,
   Menu,
   X,
   Home,
   ChevronRight,
-  Layers
+  Loader2,
+  Radio
 } from 'lucide-react';
 import Link from 'next/link';
 import ImpactAnalysis from '@/components/dashboard/ImpactAnalysis';
 import RiskAssessment from '@/components/dashboard/RiskAssessment';
 import ScenarioSimulation from '@/components/dashboard/ScenarioSimulation';
 import DashboardOverview from '@/components/dashboard/DashboardOverview';
+import RadarForecastNowcasting from '@/components/dashboard/RadarForecastNowcasting';
 
 const navigationItems = [
   { id: 'overview', label: 'Overview', icon: BarChart3 },
+  { id: 'radar', label: 'Radar Forecast', icon: Radio },
   { id: 'impact', label: 'Impact Analysis', icon: Zap },
   { id: 'risk', label: 'Risk Assessment', icon: Shield },
   { id: 'simulation', label: 'Scenario Simulation', icon: TrendingUp },
 ];
 
-export default function DashboardPage() {
+function DashboardContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -57,6 +58,23 @@ export default function DashboardPage() {
     switch (activeSection) {
       case 'overview':
         return <DashboardOverview />;
+      case 'radar':
+        return (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-3">
+                <Radio className="h-6 w-6 text-slate-700" />
+                Radar Forecast & Nowcasting
+              </CardTitle>
+              <CardDescription>
+                Real-time radar visualization with AI-powered short-term precipitation forecasting
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <RadarForecastNowcasting />
+            </CardContent>
+          </Card>
+        );
       case 'impact':
         return (
           <Card>
@@ -100,7 +118,7 @@ export default function DashboardPage() {
                 Scenario Simulation
               </CardTitle>
               <CardDescription>
-                Run "what-if" scenarios to understand how changing event parameters affects outcomes.
+                Run &ldquo;what-if&rdquo; scenarios to understand how changing event parameters affects outcomes.
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -219,4 +237,24 @@ export default function DashboardPage() {
       )}
     </div>
   );
-} 
+}
+
+// Loading fallback component
+function DashboardLoading() {
+  return (
+    <div className="flex h-screen bg-slate-50 items-center justify-center">
+      <div className="flex flex-col items-center gap-4">
+        <Loader2 className="h-8 w-8 animate-spin text-slate-600" />
+        <p className="text-sm text-slate-600">Loading dashboard...</p>
+      </div>
+    </div>
+  );
+}
+
+export default function DashboardPage() {
+  return (
+    <Suspense fallback={<DashboardLoading />}>
+      <DashboardContent />
+    </Suspense>
+  );
+}

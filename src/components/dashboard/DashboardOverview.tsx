@@ -13,7 +13,7 @@ import {
   MapPin,
   Clock
 } from 'lucide-react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from 'recharts';
+import { XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from 'recharts';
 import { healthCheck, riskHealthCheck, impactHealthCheck, simulationHealthCheck } from '@/lib/api';
 
 // Sample data for visualization - Replace with actual API calls when backend endpoints are available
@@ -80,14 +80,6 @@ export default function DashboardOverview() {
       });
     } catch (error) {
       console.error('Health check failed:', error);
-    }
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'online': return 'text-green-600 bg-green-100';
-      case 'offline': return 'text-red-600 bg-red-100';
-      default: return 'text-yellow-600 bg-yellow-100';
     }
   };
 

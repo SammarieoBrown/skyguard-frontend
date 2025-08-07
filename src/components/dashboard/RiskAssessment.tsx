@@ -13,10 +13,9 @@ import {
   BarChart3,
   AlertTriangle,
   CheckCircle,
-  Users,
   Award
 } from 'lucide-react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { 
   getStateRisk, 
   getMultiStateRisk, 
@@ -24,15 +23,109 @@ import {
   getEventTypeRisk, 
   getRiskSummary,
   EVENT_TYPES,
-  STATE_CODES,
-  MultiStateRiskRequest,
-  EventTypeRiskRequest
+  STATE_CODES
 } from '@/lib/api';
+
+interface EventType {
+  event_type: string;
+  risk_score: number;
+  occurrences: number;
+  count?: number;
+}
+
+interface StateRank {
+  state: string;
+  risk_score: number;
+  ranking: number;
+}
+
+interface StateData {
+  state: string;
+  state_code?: string;
+  risk_score: number;
+  risk_level: string;
+  confidence: number;
+  risk_category?: string;
+  predicted_annual_risk?: number;
+  risk_description?: string;
+  components?: {
+    frequency?: number;
+    severity?: number;
+    vulnerability?: number;
+    trend?: number;
+  };
+}
+
+interface StateInfo {
+  state: string;
+  score: number;
+  occurrences: number;
+  event_count?: number;
+  risk_score?: number;
+}
+
+interface RiskResults {
+  risk_score?: number;
+  risk_level?: string;
+  confidence?: number;
+  historical_data?: {
+    average_events_per_year?: number;
+    most_common_event?: string;
+    highest_impact_event?: string;
+  };
+  historical_events?: Record<string, string | number>;
+  predicted_annual_risk?: number;
+  top_event_types?: EventType[];
+  rankings?: StateRank[];
+  comparison?: StateData[];
+  risk_factors?: Record<string, string | number>;
+  analysis?: Record<string, string | number>;
+  predicted_risk?: number;
+  event_correlation?: Record<string, number>;
+  top_states?: StateInfo[];
+  summary?: {
+    total_states_analyzed?: number;
+    average_risk_score?: number;
+    highest_risk_state?: {
+      state: string;
+      risk_score: number;
+    };
+    lowest_risk_state?: {
+      state: string;
+      risk_score: number;
+    };
+    risk_distribution?: Record<string, number>;
+    national_average_risk?: number;
+    most_common_event_type?: {
+      event_type: string;
+      count: number;
+    };
+  };
+  state?: string;
+  state_code?: string;
+  risk_category?: string;
+  risk_description?: string;
+  components?: {
+    frequency: number;
+    severity: number;
+    vulnerability: number;
+    trend: number;
+  };
+  states?: StateData[] | Record<string, StateData>;
+  risks?: StateData[] | Record<string, StateData>;
+  event_type?: string;
+  risk_metrics?: {
+    average_risk_score: number;
+    max_risk_score: number;
+    total_events: number;
+    affected_states: number;
+  };
+}
 
 export default function RiskAssessment() {
   const [activeTab, setActiveTab] = useState('state');
   const [loading, setLoading] = useState(false);
-  const [results, setResults] = useState<any>(null);
+  const [results, setResults] = useState<RiskResults | null>(null);
 
   // Form states
   const [selectedState, setSelectedState] = useState('');
@@ -250,7 +343,7 @@ export default function RiskAssessment() {
                         Historical Events Summary
                       </h4>
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                        {Object.entries(results.historical_events).map(([key, value]: [string, any]) => (
+                        {Object.entries(results.historical_events).map(([key, value]: [string, string | number]) => (
                           <div key={key} className="p-3 bg-slate-50 rounded-lg">
                             <div className="text-xs text-slate-500 mb-1 capitalize">{key.replace('_', ' ')}</div>
                             <div className="text-lg font-semibold">{typeof value === 'number' ? value.toLocaleString() : value}</div>
@@ -268,7 +361,7 @@ export default function RiskAssessment() {
                         Most Common Event Types
                       </h4>
                       <div className="space-y-2">
-                        {results.top_event_types.slice(0, 5).map((event: any, index: number) => (
+                        {results.top_event_types.slice(0, 5).map((event: EventType, index: number) => (
                           <div key={index} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
                             <div className="capitalize">{event.event_type}</div>
                             <div className="text-sm font-medium text-slate-600">{event.count} events</div>
@@ -287,7 +380,7 @@ export default function RiskAssessment() {
                     <Award className="h-5 w-5 text-yellow-600" />
                     State Risk Rankings
                   </h4>
-                  {results.rankings.slice(0, 10).map((item: any, index: number) => (
+                  {results.rankings.slice(0, 10).map((item: StateRank, index: number) => (
                     <div key={item.state} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
                       <div className="flex items-center gap-3">
                         <div className="flex items-center justify-center w-8 h-8 bg-white rounded-full text-sm font-bold">
@@ -318,10 +411,11 @@ export default function RiskAssessment() {
                   
                   {/* State Risk Cards */}
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {(Array.isArray(results.states || results.risks) 
-                      ? (results.states || results.risks) 
-                      : Object.values(results.states || results.risks || {})
-                    ).map((stateData: any) => (
+                    {(() => {
+                      const data = results.states || results.risks;
+                      if (!data) return [];
+                      return Array.isArray(data) ? data : Object.values(data);
+                    })().map((stateData: StateData) => (
                       <div key={stateData.state_code || stateData.state} className="p-4 bg-slate-50 rounded-lg border border-slate-200">
                         <div className="flex items-center justify-between mb-3">
                           <h5 className="font-semibold text-lg">{stateData.state_code || stateData.state}</h5>
@@ -346,19 +440,19 @@ export default function RiskAssessment() {
                             <div className="grid grid-cols-2 gap-2 text-sm">
                               <div className="flex justify-between">
                                 <span className="text-slate-600">Frequency:</span>
-                                <span className="font-medium">{stateData.components.frequency.toFixed(2)}</span>
+                                <span className="font-medium">{stateData.components.frequency?.toFixed(2) ?? 'N/A'}</span>
                               </div>
                               <div className="flex justify-between">
                                 <span className="text-slate-600">Severity:</span>
-                                <span className="font-medium">{stateData.components.severity.toFixed(2)}</span>
+                                <span className="font-medium">{stateData.components.severity?.toFixed(2) ?? 'N/A'}</span>
                               </div>
                               <div className="flex justify-between">
                                 <span className="text-slate-600">Vulnerability:</span>
-                                <span className="font-medium">{stateData.components.vulnerability.toFixed(2)}</span>
+                                <span className="font-medium">{stateData.components.vulnerability?.toFixed(2) ?? 'N/A'}</span>
                               </div>
                               <div className="flex justify-between">
                                 <span className="text-slate-600">Trend:</span>
-                                <span className="font-medium">{stateData.components.trend.toFixed(2)}</span>
+                                <span className="font-medium">{stateData.components.trend?.toFixed(2) ?? 'N/A'}</span>
                               </div>
                             </div>
                           </div>
@@ -370,10 +464,11 @@ export default function RiskAssessment() {
                   {/* Comparison Chart */}
                   <div className="mt-4">
                     <ResponsiveContainer width="100%" height={300}>
-                      <BarChart data={(Array.isArray(results.states || results.risks) 
-                        ? (results.states || results.risks) 
-                        : Object.values(results.states || results.risks || {})
-                      ).map((s: any) => ({
+                      <BarChart data={(() => {
+                        const data = results.states || results.risks;
+                        if (!data) return [];
+                        return Array.isArray(data) ? data : Object.values(data);
+                      })().map((s: StateData) => ({
                         ...s,
                         state: s.state_code || s.state
                       }))}>
@@ -442,14 +537,14 @@ export default function RiskAssessment() {
                     <div>
                       <h4 className="font-medium mb-3">Most Affected States</h4>
                       <div className="space-y-2">
-                        {results.top_states.slice(0, 5).map((state: any, index: number) => (
+                        {results.top_states.slice(0, 5).map((state: StateInfo, index: number) => (
                           <div key={index} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
                             <div className="flex items-center gap-3">
                               <div className="font-medium">{state.state}</div>
                               <div className="text-sm text-slate-600">{state.event_count} events</div>
                             </div>
-                            <div className={`px-3 py-1 rounded-full text-sm font-medium ${getRiskColor(state.risk_score)}`}>
-                              Risk: {state.risk_score.toFixed(1)}
+                            <div className={`px-3 py-1 rounded-full text-sm font-medium ${getRiskColor(state.risk_score || state.score)}`}>
+                              Risk: {(state.risk_score || state.score).toFixed(1)}
                             </div>
                           </div>
                         ))}
@@ -471,22 +566,22 @@ export default function RiskAssessment() {
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                     <div className="p-3 bg-purple-50 rounded-lg">
                       <div className="text-xs text-slate-500 mb-1">Highest Risk State</div>
-                      <div className="font-semibold">{results.summary.highest_risk_state.state}</div>
-                      <div className="text-sm text-purple-600">Score: {results.summary.highest_risk_state.risk_score.toFixed(1)}</div>
+                      <div className="font-semibold">{results.summary.highest_risk_state?.state ?? 'N/A'}</div>
+                      <div className="text-sm text-purple-600">Score: {results.summary.highest_risk_state?.risk_score?.toFixed(1) ?? 'N/A'}</div>
                     </div>
                     <div className="p-3 bg-green-50 rounded-lg">
                       <div className="text-xs text-slate-500 mb-1">Lowest Risk State</div>
-                      <div className="font-semibold">{results.summary.lowest_risk_state.state}</div>
-                      <div className="text-sm text-green-600">Score: {results.summary.lowest_risk_state.risk_score.toFixed(1)}</div>
+                      <div className="font-semibold">{results.summary.lowest_risk_state?.state ?? 'N/A'}</div>
+                      <div className="text-sm text-green-600">Score: {results.summary.lowest_risk_state?.risk_score?.toFixed(1) ?? 'N/A'}</div>
                     </div>
                     <div className="p-3 bg-blue-50 rounded-lg">
                       <div className="text-xs text-slate-500 mb-1">National Average</div>
-                      <div className="text-lg font-semibold">{results.summary.national_average_risk.toFixed(2)}</div>
+                      <div className="text-lg font-semibold">{results.summary.national_average_risk?.toFixed(2) ?? 'N/A'}</div>
                     </div>
                     <div className="p-3 bg-orange-50 rounded-lg">
                       <div className="text-xs text-slate-500 mb-1">Most Common Event</div>
-                      <div className="font-semibold capitalize">{results.summary.most_common_event_type.event_type}</div>
-                      <div className="text-sm text-orange-600">{results.summary.most_common_event_type.count.toLocaleString()} events</div>
+                      <div className="font-semibold capitalize">{results.summary.most_common_event_type?.event_type ?? 'N/A'}</div>
+                      <div className="text-sm text-orange-600">{results.summary.most_common_event_type?.count?.toLocaleString() ?? 0} events</div>
                     </div>
                   </div>
                   
@@ -495,7 +590,7 @@ export default function RiskAssessment() {
                     <div>
                       <h5 className="font-medium mb-2 text-sm">Risk Distribution by Category</h5>
                       <div className="space-y-2">
-                        {Object.entries(results.summary.risk_distribution).map(([category, count]: [string, any]) => (
+                        {Object.entries(results.summary.risk_distribution).map(([category, count]: [string, number]) => (
                           <div key={category} className="flex items-center justify-between p-2 bg-slate-50 rounded">
                             <span className="text-sm">{category}</span>
                             <span className="text-sm font-medium">{count} states</span>

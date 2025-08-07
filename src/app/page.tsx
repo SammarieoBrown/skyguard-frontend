@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, Suspense } from "react";
+import React, { Suspense } from "react";
 import { Button } from "@/components/ui/button";
 import { 
   ArrowRight, 
@@ -25,7 +25,6 @@ const CTASection = dynamic(() => import('@/components/CTASection'), {
 });
 
 export default function Home() {
-  const [email, setEmail] = useState("");
 
   return (
     <div className="min-h-screen bg-white">
@@ -182,7 +181,7 @@ export default function Home() {
       </Suspense>
 
       <Suspense fallback={<div className="h-96 bg-slate-50" />}>
-        <CTASection email={email} setEmail={setEmail} />
+        <CTASection />
       </Suspense>
 
       {/* Footer */}

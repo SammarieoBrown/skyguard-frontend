@@ -9,7 +9,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
   Settings, 
-  Zap, 
   BarChart3, 
   Loader2,
   Plus,
@@ -21,14 +20,12 @@ import {
   Users,
   AlertTriangle
 } from 'lucide-react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from 'recharts';
 import { 
   runScenarioSimulation, 
   runBatchSimulation, 
   runSensitivityAnalysis,
   EVENT_TYPES,
   STATE_CODES,
-  TORNADO_SCALES,
   MODIFICATION_TYPES,
   MODIFIABLE_PARAMETERS,
   ScenarioSimulationRequest,
@@ -38,10 +35,169 @@ import {
   ScenarioModification
 } from '@/lib/api';
 
+interface ParameterChange {
+  change_type: string;
+  original: number | string;
+  modified: number | string;
+  change_factor?: number;
+}
+
+interface Scenario {
+  scenario_id: string;
+  predicted_damage: number;
+  casualty_risk: number;
+  severity_score: number;
+  damage_change_percent: number;
+  casualty_change_percent: number;
+  severity_change_percent: number;
+  parameter_changes?: Record<string, ParameterChange>;
+  impact_analysis?: {
+    overall_impact?: string;
+    property_damage_change?: {
+      change_percent: number;
+    };
+    casualty_risk_change?: {
+      change_percent: number;
+    };
+    severity_change?: {
+      change_description?: string;
+    };
+  };
+  modified_prediction?: {
+    property_damage?: {
+      predicted_damage?: number;
+    };
+    casualty_risk?: {
+      risk_score?: number;
+      casualty_risk_score?: number;
+      risk_category?: string;
+    };
+    severity?: {
+      severity_class?: string;
+    };
+  };
+}
+
+interface ParameterImportance {
+  parameter: string;
+  importance: number;
+}
+
+interface ElasticityRow {
+  parameter: string;
+  property_damage: number;
+  casualty_risk: number;
+  severity: number;
+}
+
+interface ParameterSensitivity {
+  property_damage_elasticity?: number;
+  casualty_risk_elasticity?: number;
+  severity_elasticity?: number;
+  range_tested?: {
+    min: number;
+    max: number;
+  };
+  overall_importance?: number;
+}
+
+interface SimulationResults {
+  base_results?: {
+    property_damage?: number;
+    casualty_risk?: number;
+    severity_score?: number;
+  };
+  modified_results?: {
+    property_damage?: number;
+    casualty_risk?: number;
+    severity_score?: number;
+  };
+  change_summary?: {
+    property_damage_change?: number;
+    casualty_risk_change?: number;
+    severity_change?: number;
+  };
+  parameter_changes?: Record<string, ParameterChange>;
+  scenarios?: Scenario[];
+  summary?: {
+    total_scenarios?: number;
+    average_damage_change?: number;
+    max_damage_impact?: number;
+    min_damage_impact?: number;
+    average_property_damage?: number;
+    average_casualty_risk?: number;
+    scenarios_with_increase?: number;
+    scenarios_with_decrease?: number;
+    max_property_damage?: number;
+    max_risk_scenario?: string;
+  };
+  sensitive_parameters?: string[];
+  insensitive_parameters?: string[];
+  most_influential?: string;
+  parameter_sensitivities?: Record<string, ParameterSensitivity>;
+  visualization_data?: {
+    parameter_importance?: ParameterImportance[];
+    elasticity_matrix?: ElasticityRow[];
+  };
+  uncertainty_metrics?: Record<string, number>;
+  scenario_id?: string;
+  base_prediction?: {
+    property_damage?: {
+      predicted_damage?: number;
+      prediction_range?: {
+        low_estimate: number;
+        high_estimate: number;
+      };
+    };
+    casualty_risk?: {
+      casualty_risk_score?: number;
+      risk_category?: string;
+    };
+    severity?: {
+      severity_class?: string;
+      confidence_score?: number;
+    };
+  };
+  modified_prediction?: {
+    property_damage?: {
+      predicted_damage?: number;
+      prediction_range?: {
+        low_estimate: number;
+        high_estimate: number;
+      };
+    };
+    casualty_risk?: {
+      casualty_risk_score?: number;
+      risk_category?: string;
+    };
+    severity?: {
+      severity_class?: string;
+      confidence_score?: number;
+    };
+  };
+  impact_analysis?: {
+    property_damage_change?: {
+      change_percent: number;
+      change_amount: number;
+    };
+    casualty_risk_change?: {
+      change_percent: number;
+      change_amount?: number;
+      category_change?: boolean;
+    };
+    severity_change?: {
+      from_class?: string;
+      to_class?: string;
+      change_description?: string;
+    };
+    overall_impact?: string;
+  };
+}
+
 export default function ScenarioSimulation() {
   const [activeTab, setActiveTab] = useState('scenario');
   const [loading, setLoading] = useState(false);
-  const [results, setResults] = useState<any>(null);
+  const [results, setResults] = useState<SimulationResults | null>(null);
 
   // Base event state
   const [baseEvent, setBaseEvent] = useState<BaseEvent>({
@@ -78,7 +234,7 @@ export default function ScenarioSimulation() {
     setModifications(modifications.filter((_, i) => i !== index));
   };
 
-  const updateModification = (index: number, field: keyof ScenarioModification, value: any) => {
+  const updateModification = (index: number, field: keyof ScenarioModification, value: string | number) => {
     const updated = [...modifications];
     updated[index] = { ...updated[index], [field]: value };
     setModifications(updated);
@@ -95,7 +251,7 @@ export default function ScenarioSimulation() {
     setBatchScenarios(batchScenarios.filter((_, i) => i !== index));
   };
 
-  const updateBatchScenario = (scenarioIndex: number, modIndex: number, field: keyof ScenarioModification, value: any) => {
+  const updateBatchScenario = (scenarioIndex: number, modIndex: number, field: keyof ScenarioModification, value: string | number) => {
     const updated = [...batchScenarios];
     updated[scenarioIndex][modIndex] = { ...updated[scenarioIndex][modIndex], [field]: value };
     setBatchScenarios(updated);
@@ -304,7 +460,7 @@ export default function ScenarioSimulation() {
                     Parameter Changes Applied
                   </h4>
                   <div className="space-y-2">
-                    {Object.entries(results.parameter_changes).map(([param, change]: [string, any]) => (
+                    {Object.entries(results.parameter_changes).map(([param, change]: [string, ParameterChange]) => (
                       <div key={param} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
                         <div>
                           <div className="text-sm font-medium capitalize">{param.replace('_', ' ')}</div>
@@ -410,7 +566,7 @@ export default function ScenarioSimulation() {
                   
                   {/* Individual Scenario Results */}
                   <div className="space-y-3">
-                    {results.scenarios.map((scenario: any, index: number) => (
+                    {results.scenarios.map((scenario: Scenario, index: number) => (
                       <div key={scenario.scenario_id || index} className="p-4 bg-slate-50 rounded-lg">
                         <div className="flex items-center justify-between mb-2">
                           <h5 className="font-medium">Scenario {index + 1}</h5>
@@ -430,7 +586,7 @@ export default function ScenarioSimulation() {
                             <div>
                               <div className="text-xs text-slate-500">Property Damage</div>
                               <div className="font-semibold">
-                                {formatCurrency(scenario.modified_prediction.property_damage.predicted_damage)}
+                                {formatCurrency(scenario.modified_prediction.property_damage.predicted_damage || 0)}
                               </div>
                               {scenario.impact_analysis?.property_damage_change && (
                                 <div className="text-xs text-slate-600">
@@ -445,7 +601,7 @@ export default function ScenarioSimulation() {
                             <div>
                               <div className="text-xs text-slate-500">Casualty Risk</div>
                               <div className="font-semibold">
-                                {(scenario.modified_prediction.casualty_risk.casualty_risk_score * 100).toFixed(1)}%
+                                {((scenario.modified_prediction.casualty_risk.casualty_risk_score || 0) * 100).toFixed(1)}%
                               </div>
                               <div className="text-xs text-slate-600">
                                 {scenario.modified_prediction.casualty_risk.risk_category}
@@ -467,7 +623,7 @@ export default function ScenarioSimulation() {
                           <div className="mt-2 pt-2 border-t border-slate-200">
                             <div className="text-xs text-slate-500">Modifications:</div>
                             <div className="text-xs">
-                              {Object.entries(scenario.parameter_changes).map(([param, change]: [string, any]) => (
+                              {Object.entries(scenario.parameter_changes).map(([param, change]: [string, ParameterChange]) => (
                                 <span key={param} className="inline-block mr-3">
                                   {param}: {change.original} → {change.modified}
                                 </span>
@@ -494,7 +650,7 @@ export default function ScenarioSimulation() {
                     <div>
                       <h5 className="text-sm font-medium mb-2">Parameter Importance</h5>
                       <div className="space-y-2">
-                        {results.visualization_data.parameter_importance.map((item: any) => (
+                        {results.visualization_data.parameter_importance.map((item: ParameterImportance) => (
                           <div key={item.parameter} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
                             <div className="text-sm font-medium capitalize">
                               {item.parameter.replace('_', ' ')}
@@ -536,7 +692,7 @@ export default function ScenarioSimulation() {
                             </tr>
                           </thead>
                           <tbody className="bg-white divide-y divide-slate-200">
-                            {results.visualization_data.elasticity_matrix.map((row: any) => (
+                            {results.visualization_data.elasticity_matrix.map((row: ElasticityRow) => (
                               <tr key={row.parameter}>
                                 <td className="px-3 py-2 whitespace-nowrap text-sm font-medium text-slate-900 capitalize">
                                   {row.parameter.replace('_', ' ')}
@@ -563,7 +719,7 @@ export default function ScenarioSimulation() {
                     <div>
                       <h5 className="text-sm font-medium mb-2">Detailed Sensitivities</h5>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                        {Object.entries(results.parameter_sensitivities).map(([param, sensitivity]: [string, any]) => (
+                        {Object.entries(results.parameter_sensitivities).map(([param, sensitivity]: [string, ParameterSensitivity]) => (
                           <div key={param} className="p-3 bg-slate-50 rounded-lg">
                             <div className="text-sm font-medium capitalize mb-2">
                               {param.replace('_', ' ')}
@@ -595,7 +751,7 @@ export default function ScenarioSimulation() {
                     Uncertainty Metrics
                   </h4>
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                    {Object.entries(results.uncertainty_metrics).map(([metric, value]: [string, any]) => (
+                    {Object.entries(results.uncertainty_metrics).map(([metric, value]: [string, number]) => (
                       <div key={metric} className="p-3 bg-slate-50 rounded-lg">
                         <div className="text-xs text-slate-500 mb-1 capitalize">
                           {metric.replace(/_/g, ' ').replace('cv', 'Coefficient of Variation')}
@@ -746,7 +902,7 @@ export default function ScenarioSimulation() {
                         <Label>Modification Type</Label>
                         <Select
                           value={mod.modification_type}
-                          onValueChange={(value) => updateModification(index, 'modification_type', value as any)}
+                          onValueChange={(value) => updateModification(index, 'modification_type', value)}
                         >
                           <SelectTrigger>
                             <SelectValue />
@@ -858,7 +1014,7 @@ export default function ScenarioSimulation() {
 
                           <Select
                             value={mod.modification_type}
-                            onValueChange={(value) => updateBatchScenario(scenarioIndex, modIndex, 'modification_type', value as any)}
+                            onValueChange={(value) => updateBatchScenario(scenarioIndex, modIndex, 'modification_type', value)}
                           >
                             <SelectTrigger>
                               <SelectValue placeholder="Type" />
