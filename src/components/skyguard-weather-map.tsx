@@ -376,15 +376,7 @@ export function SkyguardWeatherMap() {
   const mapCenter: L.LatLngExpression = selectedSite ? [selectedSite.coordinates[0], selectedSite.coordinates[1]] : [39.8283, -98.5795];
   const mapZoom = selectedSite ? 9 : 4;
 
-  const getFrameLabel = () => {
-    if (!displayedFrame) return "No data";
-    if (allFrames.length === 0) return "No data";
-    if (frameIndex < historicalFrameCount - 1) return `History (${frameIndex + 1}/${historicalFrameCount})`;
-    if (frameIndex === historicalFrameCount - 1) return "Current";
-    const predictionIndex = frameIndex - historicalFrameCount + 1;
-    const totalPredictions = allFrames.length - historicalFrameCount;
-    return `Prediction +${predictionIndex * 10} min (${predictionIndex}/${totalPredictions})`;
-  }
+
 
   return (
     <Card>
