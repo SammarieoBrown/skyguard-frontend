@@ -439,7 +439,7 @@ export function SkyguardWeatherMap() {
             <span className="sr-only">{isPlaying ? "Pause" : "Play"}</span>
           </Button>
           <div className="w-full">
-            {getFrameLabel() !== "Current" && (
+            {!getFrameLabel().startsWith("Prediction") && getFrameLabel() !== "Current" && (
               <label className="block text-sm font-medium mb-2">
                 Time Frame: <span className="font-bold">{getFrameLabel()}</span>
               </label>
