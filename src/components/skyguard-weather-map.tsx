@@ -169,7 +169,7 @@ export function SkyguardWeatherMap() {
   const [sites] = useState<RadarSite[]>(staticSites);
   const [selectedSite, setSelectedSite] = useState<RadarSite | null>(staticSites[0] || null);
   const [allFrames, setAllFrames] = useState<RadarDataFrame[]>([]);
-  const [historicalFrameCount, setHistoricalFrameCount] = useState(0);
+
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [frameIndex, setFrameIndex] = useState(0);
@@ -185,7 +185,6 @@ export function SkyguardWeatherMap() {
     }
     
     const historicalFrames = radarData.frames;
-    setHistoricalFrameCount(historicalFrames.length);
 
     const predictionFramesData: RadarDataFrame[] = (predictData.prediction_frames || []).map((pFrame, i) => {
       const lastHistoricalTime = new Date(predictData.prediction_timestamp);
