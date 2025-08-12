@@ -439,11 +439,7 @@ export function SkyguardWeatherMap() {
             <span className="sr-only">{isPlaying ? "Pause" : "Play"}</span>
           </Button>
           <div className="w-full">
-            {!getFrameLabel().startsWith("Prediction") && getFrameLabel() !== "Current" && (
-              <label className="block text-sm font-medium mb-2">
-                Time Frame: <span className="font-bold">{getFrameLabel()}</span>
-              </label>
-            )}
+
             <Slider min={0} max={allFrames.length > 0 ? allFrames.length - 1 : 0} step={1} value={[frameIndex]} onValueChange={(value) => setFrameIndex(value[0])} disabled={allFrames.length === 0 || isLoading} />
           </div>
         </div>
