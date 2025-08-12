@@ -30,6 +30,7 @@ import {
   SeverityRequest,
   ComprehensiveAssessmentRequest
 } from '@/lib/api';
+import { getStateName } from '@/lib/state-names';
 
 interface Factor {
   factor: string;
@@ -148,6 +149,23 @@ export default function ImpactAnalysis() {
   const [activeTab, setActiveTab] = useState('property');
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState<ImpactResults | null>(null);
+  
+  // Helper function to determine magnitude label based on event type
+  const getMagnitudeLabel = (eventType: string): string => {
+    const eventLower = eventType.toLowerCase();
+    if (eventLower.includes('tornado') || eventLower.includes('wind') || eventLower.includes('hurricane')) {
+      return 'Wind Speed (mph)';
+    } else if (eventLower.includes('heat') || eventLower.includes('cold')) {
+      return 'Temperature (°F)';
+    } else if (eventLower.includes('rain') || eventLower.includes('flood') || eventLower.includes('snow')) {
+      return 'Precipitation (inches)';
+    } else if (eventLower.includes('drought')) {
+      return 'Severity Index';
+    } else if (eventLower.includes('hail')) {
+      return 'Hail Size (inches)';
+    }
+    return 'Magnitude';
+  };
 
   // Form states with proper defaults
   const [propertyForm, setPropertyForm] = useState<PropertyDamageRequest>({
@@ -193,14 +211,36 @@ export default function ImpactAnalysis() {
 
   const handlePropertyDamageSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validate form inputs
+    if (!propertyForm.event_type || !propertyForm.state) {
+      setResults({ error: 'Please select both event type and state.' });
+      return;
+    }
+    
+    if (propertyForm.magnitude <= 0) {
+      setResults({ error: 'Please enter a valid magnitude value greater than 0.' });
+      return;
+    }
+    
     setLoading(true);
     try {
       const response = await predictPropertyDamage(propertyForm);
       console.log('Property damage response:', response.data);
-      setResults(response.data);
+      
+      // Check if we got a valid response
+      if (response.data && response.data.predicted_damage !== undefined) {
+        setResults(response.data);
+      } else {
+        setResults({ 
+          error: 'The prediction model returned an invalid response. This may be due to insufficient training data for this event type and location combination.',
+          predicted_damage: 0,
+          confidence_score: 0
+        });
+      }
     } catch (error) {
       console.error('Property damage prediction failed:', error);
-      setResults({ error: 'Failed to predict property damage. Please try again.' });
+      setResults({ error: 'Failed to connect to the prediction service. Please try again.' });
     } finally {
       setLoading(false);
     }
@@ -314,63 +354,6 @@ export default function ImpactAnalysis() {
       );
     };
     
-    // Helper function to render population risk factors
-    const renderPopulationRiskFactors = (factors: PopulationRiskFactor) => {
-      if (!factors) return null;
-      
-      return (
-        <div className="mt-4">
-          <h4 className="font-medium mb-3 flex items-center gap-2">
-            <Users className="h-5 w-5 text-slate-600" />
-            Population Risk Assessment
-          </h4>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-            <div className="p-3 bg-slate-50 rounded-lg">
-              <div className="text-xs text-slate-500 mb-1">Population Density</div>
-              <div className="flex items-center gap-2">
-                <div className="flex-1 bg-slate-200 rounded-full h-2">
-                  <div 
-                    className="h-2 bg-gradient-to-r from-green-500 to-red-500 rounded-full" 
-                    style={{ width: `${Number(factors.population_density) * 100}%` }}
-                  />
-                </div>
-                <span className="text-sm font-medium">
-                  {(Number(factors.population_density) * 100).toFixed(0)}%
-                </span>
-              </div>
-            </div>
-            <div className="p-3 bg-slate-50 rounded-lg">
-              <div className="text-xs text-slate-500 mb-1">Vulnerable Population</div>
-              <div className="flex items-center gap-2">
-                <div className="flex-1 bg-slate-200 rounded-full h-2">
-                  <div 
-                    className="h-2 bg-gradient-to-r from-green-500 to-red-500 rounded-full" 
-                    style={{ width: `${Number(factors.vulnerable_population) * 100}%` }}
-                  />
-                </div>
-                <span className="text-sm font-medium">
-                  {(Number(factors.vulnerable_population) * 100).toFixed(0)}%
-                </span>
-              </div>
-            </div>
-            <div className="p-3 bg-slate-50 rounded-lg">
-              <div className="text-xs text-slate-500 mb-1">Infrastructure Resilience</div>
-              <div className="flex items-center gap-2">
-                <div className="flex-1 bg-slate-200 rounded-full h-2">
-                  <div 
-                    className="h-2 bg-gradient-to-r from-red-500 to-green-500 rounded-full" 
-                    style={{ width: `${Number(factors.infrastructure_resilience) * 100}%` }}
-                  />
-                </div>
-                <span className="text-sm font-medium">
-                  {(Number(factors.infrastructure_resilience) * 100).toFixed(0)}%
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
-      );
-    };
 
     return (
       <div className="mt-6 space-y-4">
@@ -385,18 +368,36 @@ export default function ImpactAnalysis() {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
+              {/* Display error messages */}
+              {results.error && (
+                <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
+                  <div className="flex items-start gap-3">
+                    <AlertTriangle className="h-5 w-5 text-red-600 mt-0.5" />
+                    <div className="text-sm text-red-800">{results.error}</div>
+                  </div>
+                </div>
+              )}
+              
               {/* Display different results based on the type */}
               {results.predicted_damage !== undefined && (
                 <div className="space-y-3">
-                  <div className="flex items-center justify-between p-4 bg-blue-50 rounded-lg">
+                  <div className={`flex items-center justify-between p-4 rounded-lg ${
+                    results.predicted_damage === 0 ? 'bg-gray-50' : 'bg-blue-50'
+                  }`}>
                     <div className="flex items-center gap-3">
-                      <DollarSign className="h-8 w-8 text-blue-600" />
+                      <DollarSign className={`h-8 w-8 ${
+                        results.predicted_damage === 0 ? 'text-gray-600' : 'text-blue-600'
+                      }`} />
                       <div>
                         <div className="font-medium">Property Damage</div>
-                        <div className="text-sm text-slate-600">Estimated loss</div>
+                        <div className="text-sm text-slate-600">
+                          {results.predicted_damage === 0 ? 'No damage predicted' : 'Estimated loss'}
+                        </div>
                       </div>
                     </div>
-                    <div className="text-2xl font-bold text-blue-600">
+                    <div className={`text-2xl font-bold ${
+                      results.predicted_damage === 0 ? 'text-gray-600' : 'text-blue-600'
+                    }`}>
                       {formatCurrency(results.predicted_damage || 0)}
                     </div>
                   </div>
@@ -418,6 +419,24 @@ export default function ImpactAnalysis() {
                         <span className="font-medium">
                           {(results.confidence_score * 100).toFixed(0)}%
                         </span>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {results.predicted_damage === 0 && (
+                    <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                      <div className="flex items-start gap-2">
+                        <Activity className="h-4 w-4 text-amber-600 mt-0.5" />
+                        <div className="text-xs text-amber-800">
+                          <p className="font-medium mb-1">Model Note:</p>
+                          <p>A $0 prediction may indicate:</p>
+                          <ul className="list-disc list-inside ml-2 mt-1 space-y-0.5">
+                            <li>The event magnitude is below the damage threshold</li>
+                            <li>Limited historical data for this event type in this region</li>
+                            <li>The model needs additional training data</li>
+                          </ul>
+                          <p className="mt-2">Try adjusting the magnitude or selecting a different event type/location combination.</p>
+                        </div>
                       </div>
                     </div>
                   )}
@@ -617,11 +636,6 @@ export default function ImpactAnalysis() {
                   results.property_damage?.influential_factors || []
                 )}
               
-              {(results.casualty_risk_assessment?.population_risk_factors || results.casualty_risk?.population_risk_factors) && 
-                renderPopulationRiskFactors(
-                  results.casualty_risk_assessment?.population_risk_factors || 
-                  results.casualty_risk?.population_risk_factors || {}
-                )}
               
               {/* Impact factors from severity assessment */}
               {(results.severity?.impact_factors || results.severity_assessment?.impact_factors) && 
@@ -632,14 +646,49 @@ export default function ImpactAnalysis() {
                     Impact Factors
                   </h4>
                   <div className="space-y-2">
-                    {Object.entries(results.severity?.impact_factors || results.severity_assessment?.impact_factors || {}).map(([key, value]: [string, string | number]) => (
-                      <div key={key} className="p-3 bg-slate-50 rounded-lg">
-                        <div className="text-sm font-medium capitalize mb-1">
-                          {key.replace('_', ' ')}
-                        </div>
-                        <div className="text-sm text-slate-600">{String(value)}</div>
-                      </div>
-                    ))}
+                    {Object.entries(results.severity?.impact_factors || results.severity_assessment?.impact_factors || {})
+                      .map(([key, value]: [string, unknown]) => {
+                        // Parse the value if it's an object or try to parse if it's a JSON string
+                        let displayValue = '';
+                        
+                        if (typeof value === 'object' && value !== null) {
+                          // Handle objects with type assertion
+                          const objValue = value as Record<string, unknown>;
+                          if (key === 'property_damage' || key === 'property damage') {
+                            displayValue = objValue.value ? `$${(objValue.value as number).toLocaleString()}` : JSON.stringify(value);
+                            if (objValue.impact_level) {
+                              displayValue += ` (${objValue.impact_level})`;
+                            }
+                          } else if (key === 'casualties') {
+                            if (objValue.injuries !== undefined || objValue.deaths !== undefined) {
+                              displayValue = `Injuries: ${objValue.injuries || 0}, Deaths: ${objValue.deaths || 0}`;
+                              if (objValue.total) {
+                                displayValue += ` (Total: ${objValue.total})`;
+                              }
+                              if (objValue.impact_level) {
+                                displayValue += ` - ${objValue.impact_level}`;
+                              }
+                            } else {
+                              displayValue = JSON.stringify(value);
+                            }
+                          } else {
+                            displayValue = JSON.stringify(value);
+                          }
+                        } else {
+                          displayValue = String(value);
+                        }
+                        
+                        return (
+                          <div key={key} className="p-3 bg-slate-50 rounded-lg">
+                            <div className="text-sm font-medium capitalize mb-1">
+                              {key.replace(/_/g, ' ')}
+                            </div>
+                            <div className="text-sm text-slate-600">
+                              {displayValue}
+                            </div>
+                          </div>
+                        );
+                      })}
                   </div>
                 </div>
               )}
@@ -677,7 +726,6 @@ export default function ImpactAnalysis() {
               {!results.property_damage && !results.casualty_risk && !results.severity && (
                 <>
                   {results.influential_factors && renderInfluentialFactors(results.influential_factors)}
-                  {results.population_risk_factors && renderPopulationRiskFactors(results.population_risk_factors)}
                   {results.impact_factors && Object.keys(results.impact_factors).length > 0 && (
                     <div className="mt-4">
                       <h4 className="font-medium mb-3 flex items-center gap-2">
@@ -685,14 +733,49 @@ export default function ImpactAnalysis() {
                         Impact Factors
                       </h4>
                       <div className="space-y-2">
-                        {Object.entries(results.impact_factors).map(([key, value]: [string, string | number]) => (
-                          <div key={key} className="p-3 bg-slate-50 rounded-lg">
-                            <div className="text-sm font-medium capitalize mb-1">
-                              {key.replace('_', ' ')}
-                            </div>
-                            <div className="text-sm text-slate-600">{String(value)}</div>
-                          </div>
-                        ))}
+                        {Object.entries(results.impact_factors)
+                          .map(([key, value]: [string, unknown]) => {
+                            // Parse the value if it's an object or try to parse if it's a JSON string
+                            let displayValue = '';
+                            
+                            if (typeof value === 'object' && value !== null) {
+                              // Handle objects with type assertion
+                              const objValue = value as Record<string, unknown>;
+                              if (key === 'property_damage' || key === 'property damage') {
+                                displayValue = objValue.value ? `$${(objValue.value as number).toLocaleString()}` : JSON.stringify(value);
+                                if (objValue.impact_level) {
+                                  displayValue += ` (${objValue.impact_level})`;
+                                }
+                              } else if (key === 'casualties') {
+                                if (objValue.injuries !== undefined || objValue.deaths !== undefined) {
+                                  displayValue = `Injuries: ${objValue.injuries || 0}, Deaths: ${objValue.deaths || 0}`;
+                                  if (objValue.total) {
+                                    displayValue += ` (Total: ${objValue.total})`;
+                                  }
+                                  if (objValue.impact_level) {
+                                    displayValue += ` - ${objValue.impact_level}`;
+                                  }
+                                } else {
+                                  displayValue = JSON.stringify(value);
+                                }
+                              } else {
+                                displayValue = JSON.stringify(value);
+                              }
+                            } else {
+                              displayValue = String(value);
+                            }
+                            
+                            return (
+                              <div key={key} className="p-3 bg-slate-50 rounded-lg">
+                                <div className="text-sm font-medium capitalize mb-1">
+                                  {key.replace(/_/g, ' ')}
+                                </div>
+                                <div className="text-sm text-slate-600">
+                                  {displayValue}
+                                </div>
+                              </div>
+                            );
+                          })}
                       </div>
                     </div>
                   )}
@@ -760,7 +843,7 @@ export default function ImpactAnalysis() {
                       <SelectContent>
                         {STATE_CODES.map((state) => (
                           <SelectItem key={state} value={state}>
-                            {state}
+                            {getStateName(state)}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -768,12 +851,12 @@ export default function ImpactAnalysis() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label>Magnitude (mph)</Label>
+                    <Label>{getMagnitudeLabel(propertyForm.event_type)}</Label>
                     <Input
                       type="number"
                       value={propertyForm.magnitude || ''}
                       onChange={(e) => setPropertyForm({...propertyForm, magnitude: safeParseFloat(e.target.value)})}
-                      placeholder="Wind speed in mph"
+                      placeholder={getMagnitudeLabel(propertyForm.event_type).toLowerCase()}
                       min="0"
                     />
                   </div>
@@ -791,7 +874,7 @@ export default function ImpactAnalysis() {
                   </div>
                 </div>
 
-                <Button type="submit" disabled={loading} className="w-full">
+                <Button type="submit" disabled={loading}>
                   {loading ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -851,7 +934,7 @@ export default function ImpactAnalysis() {
                       <SelectContent>
                         {STATE_CODES.map((state) => (
                           <SelectItem key={state} value={state}>
-                            {state}
+                            {getStateName(state)}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -859,12 +942,12 @@ export default function ImpactAnalysis() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label>Magnitude (mph)</Label>
+                    <Label>{getMagnitudeLabel(casualtyForm.event_type)}</Label>
                     <Input
                       type="number"
                       value={casualtyForm.magnitude || ''}
                       onChange={(e) => setCasualtyForm({...casualtyForm, magnitude: safeParseFloat(e.target.value)})}
-                      placeholder="Wind speed in mph"
+                      placeholder={getMagnitudeLabel(casualtyForm.event_type).toLowerCase()}
                       min="0"
                     />
                   </div>
@@ -889,7 +972,7 @@ export default function ImpactAnalysis() {
                   </div>
                 </div>
 
-                <Button type="submit" disabled={loading} className="w-full">
+                <Button type="submit" disabled={loading}>
                   {loading ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -949,7 +1032,7 @@ export default function ImpactAnalysis() {
                       <SelectContent>
                         {STATE_CODES.map((state) => (
                           <SelectItem key={state} value={state}>
-                            {state}
+                            {getStateName(state)}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -957,12 +1040,12 @@ export default function ImpactAnalysis() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label>Magnitude (mph)</Label>
+                    <Label>{getMagnitudeLabel(severityForm.event_type)}</Label>
                     <Input
                       type="number"
                       value={severityForm.magnitude || ''}
                       onChange={(e) => setSeverityForm({...severityForm, magnitude: safeParseFloat(e.target.value)})}
-                      placeholder="Wind speed in mph"
+                      placeholder={getMagnitudeLabel(severityForm.event_type).toLowerCase()}
                       min="0"
                     />
                   </div>
@@ -1001,7 +1084,7 @@ export default function ImpactAnalysis() {
                   </div>
                 </div>
 
-                <Button type="submit" disabled={loading} className="w-full">
+                <Button type="submit" disabled={loading}>
                   {loading ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -1061,7 +1144,7 @@ export default function ImpactAnalysis() {
                       <SelectContent>
                         {STATE_CODES.map((state) => (
                           <SelectItem key={state} value={state}>
-                            {state}
+                            {getStateName(state)}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -1069,12 +1152,12 @@ export default function ImpactAnalysis() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label>Magnitude (mph)</Label>
+                    <Label>{getMagnitudeLabel(comprehensiveForm.event_type)}</Label>
                     <Input
                       type="number"
                       value={comprehensiveForm.magnitude || ''}
                       onChange={(e) => setComprehensiveForm({...comprehensiveForm, magnitude: safeParseFloat(e.target.value)})}
-                      placeholder="Wind speed in mph"
+                      placeholder={getMagnitudeLabel(comprehensiveForm.event_type).toLowerCase()}
                       min="0"
                     />
                   </div>
@@ -1092,7 +1175,7 @@ export default function ImpactAnalysis() {
                   </div>
                 </div>
 
-                <Button type="submit" disabled={loading} className="w-full">
+                <Button type="submit" disabled={loading}>
                   {loading ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />

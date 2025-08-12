@@ -430,23 +430,19 @@ class WeatherPredictor {
       const timestamp = new Date(currentTime + minutes * 60 * 1000);
       
       let frame: number[][];
-      let uncertainty: number[][];
       let confidence: number;
       
       if (leadTime <= 120) { // 0-2 hours: Nowcasting
         const result = this.nowcastPrediction(currentFrame.data, motionField, leadTime);
         frame = result.frame;
-        uncertainty = result.uncertainty;
         confidence = 1.0 - 0.1 * (leadTime / 120);
       } else if (leadTime <= 360) { // 2-6 hours: Blended
         const result = this.blendedPrediction(currentFrame.data, features, motionField, leadTime, rng, profile);
         frame = result.frame;
-        uncertainty = result.uncertainty;
         confidence = 0.9 - 0.3 * ((leadTime - 120) / 240);
       } else { // 6+ hours: Model-based
         const result = this.modelBasedPrediction(features, historicalFrames, leadTime, rng);
         frame = result.frame;
-        uncertainty = result.uncertainty;
         confidence = 0.6 - 0.4 * Math.min(1, (leadTime - 360) / 360);
       }
       
@@ -541,7 +537,7 @@ class WeatherPredictor {
     profile: RegionProfile
   ): { frame: number[][]; uncertainty: number[][] } {
     // Start with advection
-    const advected = this.nowcastPrediction(currentFrame, motionField, leadTimeMinutes, rng);
+    const advected = this.nowcastPrediction(currentFrame, motionField, leadTimeMinutes);
     
     // Feature-based evolution
     const featureFrame = Array(64).fill(0).map(() => Array(64).fill(64));

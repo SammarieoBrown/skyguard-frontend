@@ -52,7 +52,7 @@ const staticSites: RadarSite[] = [
 
 // API Configuration
 const NOWCASTING_BASE =
-  "https://skyguard-analytics-backend.onrender.com/api/v1/nowcasting";
+  "https://site--capstone-backend--4bsn7jnxdnkr.code.run/api/v1/nowcasting";
 
 // Helper to render radar data to a canvas
 function renderRadarToCanvas(
@@ -262,21 +262,66 @@ export function SkyguardWeatherMap() {
         const { radar, predict } = mockDataGenerator.generate(site, hours);
         processAndSetFrames(radar, predict);
       } else {
-        const [radarRes, predictRes] = await Promise.all([
-          fetch(`${NOWCASTING_BASE}/radar-data/${siteId}?hours_back=${hours}`),
-          fetch(`${NOWCASTING_BASE}/predict`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ site_id: siteId, use_latest_data: true, hours_back: hours }),
-          }),
-        ]);
+        console.log('Fetching radar data from:', `${NOWCASTING_BASE}/radar-data/${siteId}?hours_back=${hours}`);
+        
+        // Add timeout wrapper for fetch - increased to 120 seconds for initial NEXRAD downloads
+        const fetchWithTimeout = (url: string, options: RequestInit, timeout = 120000) => {
+          return Promise.race([
+            fetch(url, options),
+            new Promise((_, reject) =>
+              setTimeout(() => reject(new Error('Request timeout after 2 minutes')), timeout)
+            )
+          ]) as Promise<Response>;
+        };
 
-        if (!radarRes.ok) throw new Error(`Failed to fetch radar data for ${siteId}`);
-        if (!predictRes.ok) throw new Error(`Failed to fetch predictions for ${siteId}`);
+        let radarRes: Response;
+        let predictRes: Response;
+        
+        try {
+          [radarRes, predictRes] = await Promise.all([
+            fetchWithTimeout(
+              `${NOWCASTING_BASE}/radar-data/${siteId}?hours_back=${hours}&max_frames=5&include_processing_metadata=false`, 
+              {
+                method: 'GET',
+                headers: {
+                  'Accept': 'application/json',
+                },
+                mode: 'cors',
+              },
+              120000 // 120 second timeout for initial NEXRAD downloads
+            ),
+            fetchWithTimeout(
+              `${NOWCASTING_BASE}/predict`, 
+              {
+                method: "POST",
+                headers: { 
+                  "Content-Type": "application/json",
+                  'Accept': 'application/json',
+                },
+                mode: 'cors',
+                body: JSON.stringify({ 
+                  site_id: siteId, 
+                  use_latest_data: true, 
+                  hours_back: hours || 1 
+                }),
+              },
+              120000 // 120 second timeout for initial NEXRAD downloads
+            ),
+          ]);
 
-        const radarData: RawRadarDataResponse = await radarRes.json();
-        const predictData: NowcastingPredictionResponse = await predictRes.json();
-        processAndSetFrames(radarData, predictData);
+          console.log('Radar response status:', radarRes.status);
+          console.log('Predict response status:', predictRes.status);
+
+          if (!radarRes.ok) throw new Error(`Failed to fetch radar data for ${siteId}: ${radarRes.status}`);
+          if (!predictRes.ok) throw new Error(`Failed to fetch predictions for ${siteId}: ${predictRes.status}`);
+          
+          const radarData: RawRadarDataResponse = await radarRes.json();
+          const predictData: NowcastingPredictionResponse = await predictRes.json();
+          processAndSetFrames(radarData, predictData);
+        } catch (fetchError) {
+          console.error('Fetch error details:', fetchError);
+          throw fetchError;
+        }
       }
     } catch (e) {
       setError(e instanceof Error ? e.message : "An unknown error occurred");
@@ -369,7 +414,17 @@ export function SkyguardWeatherMap() {
       </CardHeader>
       <CardContent className="relative z-10">
         <div className="h-[400px] md:h-[600px] w-full bg-muted rounded-md overflow-hidden">
-          {isLoading && (<div className="absolute inset-0 flex items-center justify-center bg-black/50 z-20"><Loader2 className="h-12 w-12 animate-spin text-white" /></div>)}
+          {isLoading && (
+            <div className="absolute inset-0 flex items-center justify-center bg-black/50 z-20">
+              <div className="flex flex-col items-center gap-4">
+                <Loader2 className="h-12 w-12 animate-spin text-white" />
+                <div className="text-white text-center">
+                  <p className="font-semibold">Loading radar data...</p>
+                  <p className="text-sm opacity-90">First-time downloads may take up to 2 minutes</p>
+                </div>
+              </div>
+            </div>
+          )}
           <MapContainer center={mapCenter} zoom={mapZoom} scrollWheelZoom={true} style={{ height: "100%", width: "100%" }}>
             <ChangeView center={mapCenter} zoom={mapZoom} shouldUpdate={shouldUpdateView} />
             <TileLayer attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors' url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />

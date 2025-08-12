@@ -34,6 +34,7 @@ import {
   BaseEvent,
   ScenarioModification
 } from '@/lib/api';
+import { stateCodeToName } from '@/lib/state-names';
 
 interface ParameterChange {
   change_type: string;
@@ -817,7 +818,7 @@ export default function ScenarioSimulation() {
                 <SelectContent>
                   {STATE_CODES.map((state) => (
                     <SelectItem key={state} value={state}>
-                      {state}
+                      {stateCodeToName[state] || state}
                     </SelectItem>
                   ))}
                 </SelectContent>
