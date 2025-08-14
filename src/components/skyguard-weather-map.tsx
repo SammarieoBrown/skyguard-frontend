@@ -51,8 +51,8 @@ const staticSites: RadarSite[] = [
 ];
 
 // API Configuration
-const NOWCASTING_BASE =
-  "https://site--capstone-backend--4bsn7jnxdnkr.code.run/api/v1/nowcasting";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+const NOWCASTING_BASE = `${API_BASE_URL}/api/v1/nowcasting`;
 
 // Helper to render radar data to a canvas
 function renderRadarToCanvas(

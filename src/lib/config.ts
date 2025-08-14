@@ -1,1 +1,1 @@
-export const USE_MOCK_DATA: boolean = false;
+export const USE_MOCK_DATA: boolean = true;
